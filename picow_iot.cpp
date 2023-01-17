@@ -169,7 +169,7 @@ err_t mqtt_test_connect(MQTT_CLIENT_T *state) {
 
     ci.client_id = "pico";
     ci.client_user = "mqtt";
-    ci.client_pass = "Dawson@32";
+    ci.client_pass = "";
     ci.keep_alive = 60;
     ci.will_topic = "pico_w/test";
     ci.will_msg = "HEI YOU";
