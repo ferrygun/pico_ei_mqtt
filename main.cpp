@@ -52,8 +52,8 @@ const char *key = CRYPTO_KEY;
 #define G0 1.65f
 #define NSAMP 10
  
-char ssid[] = "orangejuzz";
-char pass[] = "Beetroot18";
+char ssid[] = "";
+char pass[] = "";
 
 
 /* Private variables ------------------------------------------------------- */
@@ -202,7 +202,7 @@ err_t mqtt_test_connect(MQTT_CLIENT_T *state) {
 
     ci.client_id = "pico";
     ci.client_user = "mqtt";
-    ci.client_pass = "Dawson@32";
+    ci.client_pass = "";
     ci.keep_alive = 60;
     ci.will_topic = "hello";
     ci.will_msg = "HEI YOU";
