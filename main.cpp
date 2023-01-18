@@ -22,7 +22,7 @@
 #include "lwip/apps/mqtt_priv.h"
 
 #include "tusb.h"
-
+#include <string>
 
 #define DEBUG_printf printf
 
@@ -161,7 +161,7 @@ void mqtt_pub_request_cb(void *arg, err_t err) {
     state->received++;
 }
 
-err_t mqtt_test_publish(MQTT_CLIENT_T *state)
+err_t mqtt_test_publish(MQTT_CLIENT_T *state, const char *message)
 {
   char buffer[128];
 
@@ -171,14 +171,14 @@ err_t mqtt_test_publish(MQTT_CLIENT_T *state)
   #define TLS_STR ""
   #endif
 
-  sprintf(buffer, "hello from picow %d / %d %s", state->received, state->counter, TLS_STR);
+  sprintf(buffer, message, state->received, state->counter, TLS_STR);
 
   err_t err;
   u8_t qos = 2; /* 0 1 or 2, see MQTT specification */
   u8_t retain = 0;
   cyw43_arch_lwip_begin();
   printf("MQTT PUBLISH\n");
-  err = mqtt_publish(state->mqtt_client, "pico_w/test", buffer, strlen(buffer), qos, retain, mqtt_pub_request_cb, state);
+  err = mqtt_publish(state->mqtt_client, "picow", buffer, strlen(buffer), qos, retain, mqtt_pub_request_cb, state);
   cyw43_arch_lwip_end();
   if(err != ERR_OK) {
     DEBUG_printf("Publish err: %d\n", err);
@@ -204,8 +204,8 @@ err_t mqtt_test_connect(MQTT_CLIENT_T *state) {
     ci.client_user = "mqtt";
     ci.client_pass = "";
     ci.keep_alive = 60;
-    ci.will_topic = "hello";
-    ci.will_msg = "HEI YOU";
+    ci.will_topic = "picow";
+    ci.will_msg = NULL;
     ci.will_retain = 0;
     ci.will_qos = 0;
 
@@ -258,9 +258,8 @@ void mqtt_run_test(MQTT_CLIENT_T *state) {
 
     state->mqtt_client = mqtt_client_new();
 
-    state->counter = 0;
-
-    u32_t notReady = 5000;
+    //char* message = "";
+    const char *message = "";
 
     if (state->mqtt_client == NULL) {
         DEBUG_printf("Failed to create new mqtt client\n");
@@ -269,9 +268,6 @@ void mqtt_run_test(MQTT_CLIENT_T *state) {
 
     if (mqtt_test_connect(state) == ERR_OK) {
         while (true) {
-
-            cyw43_arch_poll();
-            sleep_ms(1);
 
             ei_printf("\nStarting inferencing in 2 seconds...\n");
             sleep_ms(2000);
@@ -331,29 +327,42 @@ void mqtt_run_test(MQTT_CLIENT_T *state) {
             #endif
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
 
-            ei_printf("ZZZ...\n");
-            //if (!notReady--) {
-                ei_printf("AAAA...\n");
+            
+            //OFF
+            if ((result.classification[1].value >= result.classification[0].value)&&(result.classification[1].value >=result.classification[2].value)) {
+                message = "OFF";
+            }
+            //ON
+            if ((result.classification[2].value >= result.classification[0].value)&&(result.classification[2].value >=result.classification[1].value)) {          
+                message = "ON";
+            }
+            //NONE
+            if ((result.classification[0].value >= result.classification[1].value)&&(result.classification[0].value >=result.classification[2].value)) {          
+                message = "";
+            }
+
+
+            if (message != NULL && strlen(message) > 0) {
+                cyw43_arch_poll();
+                sleep_ms(1);
+
                 if (mqtt_client_is_connected(state->mqtt_client)) {
-                    ei_printf("BBBBB...\n");
                     cyw43_arch_lwip_begin();
                     state->receiving = 1;
-                    
-                    if (mqtt_test_publish(state) == ERR_OK) {
+
+                    if (mqtt_test_publish(state, message) == ERR_OK) {
                         ei_printf("published %d\n", state->counter);
                         state->counter++;
                     } // else ringbuffer is full and we need to wait for messages to flush.
                     cyw43_arch_lwip_end();
                 } else {
-                    ei_printf("x");
+                    ei_printf(".");
                 }
 
                 // MEM_STATS_DISPLAY();
                 // MEMP_STATS_DISPLAY(0);
                 // MEMP_STATS_DISPLAY(1);
-
-                notReady = 5000;
-            //}
+            }
         }
     }
 }
@@ -373,7 +382,7 @@ int main()
 {
     stdio_init_all();
 
-    wait_for_usb();
+    //wait_for_usb();
     
     if (cyw43_arch_init_with_country(CYW43_COUNTRY_UK)) {
         DEBUG_printf("failed to initialise\n");
