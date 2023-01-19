@@ -82,3 +82,4 @@ list(APPEND SOURCE_FILES ${MODEL_FILES})
 target_sources(app PRIVATE ${SOURCE_FILES})
  
 pico_add_extra_outputs(app)
+
